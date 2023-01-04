@@ -14,14 +14,19 @@ Expense tracking system
 */
 
 import (
+	"context"
 	"database/sql"
-	"log"
+	"fmt"
+
 	"net/http"
 	"os"
+	"os/signal"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
+	"github.com/labstack/gommon/log"
 	"github.com/lib/pq"
 	_ "github.com/lib/pq"
 )
@@ -137,6 +142,7 @@ func main() {
 	InitDB()
 
 	e := echo.New()
+	e.Logger.SetLevel(log.INFO)
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
@@ -146,7 +152,21 @@ func main() {
 	e.GET("/expenses/:id", GetExpenseHandler)
 	e.PUT("/expenses/:id", UpdateExpenseHandler)
 
-	log.Printf("Server started at %v\n", os.Getenv("PORT"))
-	log.Fatal(e.Start(os.Getenv("PORT")))
-	log.Println("bye bye!")
+	go func() {
+		if err := e.Start(os.Getenv("PORT")); err != nil && err != http.ErrServerClosed {
+			e.Logger.Fatal("shutting down the server")
+		}
+	}()
+
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, os.Interrupt)
+	<-shutdown
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := e.Shutdown(ctx); err != nil {
+		e.Logger.Fatal(err)
+	}
+
+	fmt.Println("bye bye")
+
 }
