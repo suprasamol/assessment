@@ -1,3 +1,5 @@
+//go:build integration
+
 package main
 
 import (
@@ -62,6 +64,28 @@ func TestGetExpenseByID(t *testing.T) {
 	assert.NotEmpty(t, latest.Amount)
 	assert.NotEmpty(t, latest.Note)
 	assert.NotEmpty(t, latest.Tags)
+}
+
+func TestUpdateExpenseByID(t *testing.T) {
+	body := bytes.NewBufferString(`{
+		"id": 1,
+		"title": "apple smoothie",
+		"amount": 89,
+		"note": "no discount",
+		"tags": ["beverage"]
+	}`)
+
+	var e Expense
+	res := request(http.MethodPut, uri("expenses", strconv.Itoa(1)), body)
+	err := res.Decode(&e)
+
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, 1, e.ID)
+	assert.Equal(t, "apple smoothie", e.Title)
+	assert.Equal(t, 89, e.Amount)
+	assert.Equal(t, "no discount", e.Note)
+	assert.Equal(t, pq.Array([]string{"beverage"}), pq.Array(e.Tags))
 }
 
 func seedExpense(t *testing.T) Expense {
