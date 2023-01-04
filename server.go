@@ -144,6 +144,13 @@ func main() {
 	e := echo.New()
 	e.Logger.SetLevel(log.INFO)
 
+	e.Use(middleware.BasicAuth(func(username, password string, c echo.Context) (bool, error) {
+		if username == "apidesign" && password == "45678" {
+			return true, nil
+		}
+		return false, nil
+	}))
+
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
