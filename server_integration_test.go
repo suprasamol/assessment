@@ -12,17 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func uri(paths ...string) string {
-	host := "http://localhost" + os.Getenv("PORT")
-	if paths == nil {
-		return host
-	}
-
-	url := append([]string{host}, paths...)
-	return strings.Join(url, "/")
-}
-
-func TestCreateExpense(t *testing.T) {
+func seedExpense(t *testing.T) Expense {
 	var e Expense
 	body := bytes.NewBufferString(`{
 		"title": "strawberry smoothie",
@@ -35,9 +25,25 @@ func TestCreateExpense(t *testing.T) {
 		t.Fatal("can't create expense: ", err)
 	}
 
+	return e
+}
+
+func uri(paths ...string) string {
+	host := "http://localhost" + os.Getenv("PORT")
+	if paths == nil {
+		return host
+	}
+
+	url := append([]string{host}, paths...)
+	return strings.Join(url, "/")
+}
+
+func TestGetAllExpense(t *testing.T) {
+	seedExpense(t)
+
 	var ex []Expense
 	res := request(http.MethodGet, uri("expenses"), nil)
-	err = res.Decode(&ex)
+	err := res.Decode(&ex)
 
 	assert.Nil(t, err)
 	assert.EqualValues(t, http.StatusOK, res.StatusCode)
