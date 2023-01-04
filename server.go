@@ -77,6 +77,21 @@ func GetExpenseHandler(c echo.Context) error {
 	}
 }
 
+func UpdateExpenseHandler(c echo.Context) error {
+	var e Expense
+	err := c.Bind(&e)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, Err{Message: err.Error()})
+	}
+
+	_, err = db.Exec("UPDATE expenses SET title=$1, amount=$2, note=$3, tags=$4 WHERE id=$5", e.Title, e.Amount, e.Note, pq.Array(e.Tags), c.Param("id"))
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, Err{Message: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, e)
+}
+
 func InitDB() {
 	var err error
 	db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
@@ -104,6 +119,7 @@ func main() {
 
 	e.POST("/expenses", CreateExpenseHandler)
 	e.GET("/expenses/:id", GetExpenseHandler)
+	e.PUT("/expenses/:id", UpdateExpenseHandler)
 
 	log.Printf("Server started at %v\n", os.Getenv("PORT"))
 	log.Fatal(e.Start(os.Getenv("PORT")))
