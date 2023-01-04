@@ -57,6 +57,30 @@ func CreateExpenseHandler(c echo.Context) error {
 	return c.JSON(http.StatusCreated, e)
 }
 
+func GetExpensesHandler(c echo.Context) error {
+	stmt, err := db.Prepare("SELECT id, title, amount, note, tags FROM expenses")
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, Err{Message: "can't prepare query all expense statement"})
+	}
+
+	rows, err := stmt.Query()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, Err{Message: "can't query all expenses"})
+	}
+
+	expenses := []Expense{}
+	for rows.Next() {
+		var e Expense
+		err = rows.Scan(&e.ID, &e.Title, &e.Amount, &e.Note, pq.Array(&e.Tags))
+		if err != nil {
+			return c.JSON(http.StatusInternalServerError, Err{Message: "can't scan expenses"})
+		}
+		expenses = append(expenses, e)
+
+	}
+	return c.JSON(http.StatusOK, expenses)
+}
+
 func GetExpenseHandler(c echo.Context) error {
 	id := c.Param("id")
 	stmt, err := db.Prepare("SELECT id, title, amount, note, tags FROM expenses WHERE id = $1")
@@ -118,6 +142,7 @@ func main() {
 	e.Use(middleware.Recover())
 
 	e.POST("/expenses", CreateExpenseHandler)
+	e.GET("/expenses", GetExpensesHandler)
 	e.GET("/expenses/:id", GetExpenseHandler)
 	e.PUT("/expenses/:id", UpdateExpenseHandler)
 
