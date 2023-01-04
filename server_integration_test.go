@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -45,6 +46,22 @@ func TestCreateExpense(t *testing.T) {
 	assert.Equal(t, 1, e.Amount)
 	assert.Equal(t, "discount 1000 bath for use code 'dis1000'", e.Note)
 	assert.Equal(t, pq.Array([]string{"Notebook", "Dell"}), pq.Array(e.Tags))
+}
+
+func TestGetExpenseByID(t *testing.T) {
+	e := seedExpense(t)
+
+	var latest Expense
+	res := request(http.MethodGet, uri("expenses", strconv.Itoa(e.ID)), nil)
+	err := res.Decode(&latest)
+
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, e.ID, latest.ID)
+	assert.NotEmpty(t, latest.Title)
+	assert.NotEmpty(t, latest.Amount)
+	assert.NotEmpty(t, latest.Note)
+	assert.NotEmpty(t, latest.Tags)
 }
 
 func seedExpense(t *testing.T) Expense {
