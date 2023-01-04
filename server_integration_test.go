@@ -9,8 +9,43 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestGetAllExpense(t *testing.T) {
+	seedExpense(t)
+
+	var ex []Expense
+	res := request(http.MethodGet, uri("expenses"), nil)
+	err := res.Decode(&ex)
+
+	assert.Nil(t, err)
+	assert.EqualValues(t, http.StatusOK, res.StatusCode)
+	assert.Greater(t, len(ex), 0)
+
+}
+
+func TestCreateExpense(t *testing.T) {
+	body := bytes.NewBufferString(`{
+		"title": "Dell Precision M3800",
+		"amount": 1,
+		"note": "discount 1000 bath for use code 'dis1000'", 
+		"tags": ["Notebook", "Dell"]
+	}`)
+
+	var e Expense
+	res := request(http.MethodPost, uri("expenses"), body)
+	err := res.Decode(&e)
+
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusCreated, res.StatusCode)
+	assert.NotEqual(t, 0, e.ID)
+	assert.Equal(t, "Dell Precision M3800", e.Title)
+	assert.Equal(t, 1, e.Amount)
+	assert.Equal(t, "discount 1000 bath for use code 'dis1000'", e.Note)
+	assert.Equal(t, pq.Array([]string{"Notebook", "Dell"}), pq.Array(e.Tags))
+}
 
 func seedExpense(t *testing.T) Expense {
 	var e Expense
@@ -36,19 +71,6 @@ func uri(paths ...string) string {
 
 	url := append([]string{host}, paths...)
 	return strings.Join(url, "/")
-}
-
-func TestGetAllExpense(t *testing.T) {
-	seedExpense(t)
-
-	var ex []Expense
-	res := request(http.MethodGet, uri("expenses"), nil)
-	err := res.Decode(&ex)
-
-	assert.Nil(t, err)
-	assert.EqualValues(t, http.StatusOK, res.StatusCode)
-	assert.Greater(t, len(ex), 0)
-
 }
 
 type Response struct {
